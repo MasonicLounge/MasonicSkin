@@ -208,6 +208,7 @@ export class AppShell extends LitElement {
           </a>
           <nav aria-label="Main navigation">
             <a href="/" router-link><ml-icon name="home" size="18"></ml-icon>Forums</a>
+            ${session.currentRoles.includes('admin') ? html`<a href="/admin" router-link>Admin</a>` : ''}
             <a href="/about" router-link><ml-icon name="info" size="18"></ml-icon>About</a>
           </nav>
           <div class="auth">
