@@ -11,6 +11,7 @@ import './views/login-view.js';
 import './views/register-view.js';
 import './views/profile-view.js';
 import './views/install-view.js';
+import './views/admin-view.js';
 import './views/about-view.js';
 import './views/not-found-view.js';
 import { setRouter } from './router.js';
@@ -26,6 +27,7 @@ if (outlet) {
     { path: '/login', component: 'login-view' },
     { path: '/register', component: 'register-view' },
     { path: '/profile', component: 'profile-view' },
+    { path: '/admin', component: 'admin-view' },
     { path: '/install', component: 'install-view' },
     { path: '/groups/:id', component: 'group-view' },
     { path: '/threads/:id', component: 'thread-view' },

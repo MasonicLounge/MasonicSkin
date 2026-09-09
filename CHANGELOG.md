@@ -8,6 +8,15 @@ Entries are bilingual (English / Russian).
 
 ### Added / Добавлено
 
+- Admin panel at `/admin` for administrators only: tabs for group management
+  (create/delete), user administration (role checkboxes and status select),
+  forum settings (name editing), media (attachment list and deletion) and
+  version information (backend + DB schema).
+  Рус.: Админ-панель на `/admin` только для администраторов: вкладки
+  управления группами (создание/удаление), пользователями (чекбоксы ролей и
+  выбор статуса), настройками форума (редактирование названия), медиа (список
+  и удаление вложений) и версиями (бэкенд + схема БД).
+
 - Install wizard at `/install`: first-run setup form (forum name + administrator
   account) with a startup guard that redirects to `/install` while the forum is
   not yet set up (`GET`/`POST /api/v1/install`).

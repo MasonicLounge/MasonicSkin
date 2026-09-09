@@ -80,3 +80,25 @@ export interface Paginated<T> {
   limit: number;
   offset: number;
 }
+
+export interface UserWithRoles extends User {
+  roles: string[];
+}
+
+export interface AttachmentWithOwner {
+  id: string;
+  owner_id: string;
+  post_id: string | null;
+  filename: string;
+  content_type: string;
+  size_bytes: number;
+  storage_key: string;
+  public_url: string;
+  created_at: string;
+  updated_at: string;
+  owner_username: string;
+}
+
+export interface ForumSettings {
+  forum_name: string;
+}

@@ -1,11 +1,14 @@
 import { api } from './client.js';
 import type {
+  AttachmentWithOwner,
+  ForumSettings,
   Group,
   LoginResponse,
   Paginated,
   PostSummary,
   ThreadSummary,
   User,
+  UserWithRoles,
 } from './types.js';
 
 /** Typed helpers for the MasonicCore REST API. */
@@ -76,4 +79,42 @@ export function fetchInstallStatus(): Promise<InstallStatus> {
 
 export function submitInstall(input: InstallInput): Promise<InstallStatus> {
   return api.post<InstallStatus>('/install', input);
+}
+
+export function updateGroup(
+  id: string,
+  input: Partial<{ name: string; slug: string; description: string; parent_id: string | null; sort_order: number }>,
+): Promise<Group> {
+  return api.patch<Group>(`/groups/${id}`, input, true);
+}
+
+export function deleteGroup(id: string): Promise<void> {
+  return api.delete<void>(`/groups/${id}`, true);
+}
+
+export function fetchAdminUsers(limit = 50, offset = 0): Promise<Paginated<UserWithRoles>> {
+  return api.get<Paginated<UserWithRoles>>(`/admin/users?limit=${limit}&offset=${offset}`, true);
+}
+
+export function updateAdminUser(
+  id: string,
+  input: { roles?: string[]; status?: string },
+): Promise<UserWithRoles> {
+  return api.patch<UserWithRoles>(`/admin/users/${id}`, input, true);
+}
+
+export function fetchAdminSettings(): Promise<ForumSettings> {
+  return api.get<ForumSettings>('/admin/settings', true);
+}
+
+export function putAdminSettings(input: ForumSettings): Promise<ForumSettings> {
+  return api.put<ForumSettings>('/admin/settings', input, true);
+}
+
+export function fetchAdminMedia(limit = 50, offset = 0): Promise<Paginated<AttachmentWithOwner>> {
+  return api.get<Paginated<AttachmentWithOwner>>(`/admin/media?limit=${limit}&offset=${offset}`, true);
+}
+
+export function deleteAttachment(id: string): Promise<void> {
+  return api.delete<void>(`/media/attachments/${id}`, true);
 }
