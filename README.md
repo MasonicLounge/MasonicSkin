@@ -71,8 +71,8 @@ npm run build        # typecheck + production build into dist/
 
 ## Лицензия / License
 
-GPL v3.0. Текст лицензии появится в одном из следующих релизов.
-GPL v3.0. The license file lands in one of the upcoming releases.
+GNU GPL v3.0 — см. файл `LICENSE` в репозитории.
+GNU GPL v3.0 — see the repository `LICENSE` file.
 
 ## Контрибуторы / Contributors
 
