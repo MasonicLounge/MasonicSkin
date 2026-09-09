@@ -8,6 +8,9 @@ Entries are bilingual (English / Russian).
 
 ### Added / Добавлено
 
+- CI workflow (GitHub Actions): `npm ci` + typecheck on every push/PR; publishes the container image to `ghcr.io/masoniclounge/masonicskin:<version>` on release tags `vX.Y.Z`.
+- CI workflow (GitHub Actions): `npm ci` + typecheck на каждый push/PR; публикация образа контейнера в `ghcr.io/masoniclounge/masonicskin:<version>` по релизным тегам `vX.Y.Z`.
+
 - Container image: `Dockerfile` (Node 24 build stage → nginx runtime) with `nginx.conf` serving the SPA and proxying `/api`, `/media` and the `/ws` WebSocket upgrade to the backend.
 - Образ контейнера: `Dockerfile` (сборка Node 24 → рантайм nginx) с `nginx.conf`, раздающим SPA и проксирующим `/api`, `/media` и WebSocket-upgrade `/ws` на бэкенд.
 
