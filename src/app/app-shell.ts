@@ -160,6 +160,20 @@ export class AppShell extends LitElement {
     this.unsubscribe = session.subscribeSession(() => {
       this.user = session.currentUser;
     });
+    void this.guardInstall();
+  }
+
+  private async guardInstall(): Promise<void> {
+    if (window.location.pathname === '/install') return;
+    try {
+      const { fetchInstallStatus } = await import('../api/endpoints.js');
+      const status = await fetchInstallStatus();
+      if (!status.installed) {
+        navigate('/install');
+      }
+    } catch {
+      // backend unreachable — stay on the current page
+    }
   }
 
   private unsubscribe: (() => void) | null = null;

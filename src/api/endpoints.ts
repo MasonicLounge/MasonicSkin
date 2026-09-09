@@ -57,3 +57,23 @@ export function logoutUser(): Promise<void> {
 export function fetchMe(): Promise<{ user: User; roles: string[] }> {
   return api.get<{ user: User; roles: string[] }>('/auth/me', true);
 }
+
+export type InstallStatus = {
+  installed: boolean;
+  forum_name: string | null;
+};
+
+export type InstallInput = {
+  forum_name: string;
+  admin_username: string;
+  admin_email: string;
+  admin_password: string;
+};
+
+export function fetchInstallStatus(): Promise<InstallStatus> {
+  return api.get<InstallStatus>('/install');
+}
+
+export function submitInstall(input: InstallInput): Promise<InstallStatus> {
+  return api.post<InstallStatus>('/install', input);
+}
