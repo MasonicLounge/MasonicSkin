@@ -1,5 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
+import * as session from '../auth/session.js';
+import { navigate } from '../router.js';
 
 const THEME_KEY = 'masonic_theme';
 
@@ -91,6 +93,31 @@ export class AppShell extends LitElement {
       border-color: var(--color-text-secondary);
     }
 
+    .auth {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      margin-left: var(--space-2);
+    }
+
+    .user {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+    }
+
+    .signout {
+      background: transparent;
+      border: none;
+      color: var(--color-text-secondary);
+      font-size: var(--font-size-sm);
+      cursor: pointer;
+      padding: var(--space-1) var(--space-2);
+    }
+
+    .signout:hover {
+      color: var(--color-danger);
+    }
+
     .outlet {
       flex: 1;
       width: 100%;
@@ -119,6 +146,7 @@ export class AppShell extends LitElement {
   `;
 
   @state() private dark = document.documentElement.dataset.theme === 'dark';
+  @state() private user = session.currentUser;
 
   override firstUpdated(): void {
     const stored = localStorage.getItem(THEME_KEY);
@@ -128,6 +156,36 @@ export class AppShell extends LitElement {
       this.dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
     this.applyTheme();
+    void session.refreshSession();
+    this.unsubscribe = session.subscribeSession(() => {
+      this.user = session.currentUser;
+    });
+    void this.guardInstall();
+  }
+
+  private async guardInstall(): Promise<void> {
+    if (window.location.pathname === '/install') return;
+    try {
+      const { fetchInstallStatus } = await import('../api/endpoints.js');
+      const status = await fetchInstallStatus();
+      if (!status.installed) {
+        navigate('/install');
+      }
+    } catch {
+      // backend unreachable — stay on the current page
+    }
+  }
+
+  private unsubscribe: (() => void) | null = null;
+
+  override disconnectedCallback(): void {
+    this.unsubscribe?.();
+    super.disconnectedCallback();
+  }
+
+  private async signOut(): Promise<void> {
+    await session.logout();
+    navigate('/');
   }
 
   private toggleTheme(): void {
@@ -149,9 +207,21 @@ export class AppShell extends LitElement {
             <span>Masonic Lounge</span>
           </a>
           <nav aria-label="Main navigation">
-            <a href="/" router-link><ml-icon name="home" size="18"></ml-icon>Home</a>
+            <a href="/" router-link><ml-icon name="home" size="18"></ml-icon>Forums</a>
+            ${session.currentRoles.includes('admin') ? html`<a href="/admin" router-link>Admin</a>` : ''}
             <a href="/about" router-link><ml-icon name="info" size="18"></ml-icon>About</a>
           </nav>
+          <div class="auth">
+            ${this.user
+              ? html`
+                  <a class="user" href="/profile" router-link>${this.user.display_name || this.user.username}</a>
+                  <button class="signout" @click=${() => void this.signOut()}>Sign out</button>
+                `
+              : html`
+                  <a href="/login" router-link>Log in</a>
+                  <a href="/register" router-link>Sign up</a>
+                `}
+          </div>
           <button
             class="theme-toggle"
             @click=${this.toggleTheme}
