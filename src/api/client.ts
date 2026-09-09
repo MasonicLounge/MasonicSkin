@@ -67,6 +67,31 @@ export const api = {
   patch: <T>(path: string, body: unknown, token = false) => request<T>(path, { method: 'PATCH', body, token }),
   put: <T>(path: string, body: unknown, token = false) => request<T>(path, { method: 'PUT', body, token }),
   delete: <T>(path: string, token = false) => request<T>(path, { method: 'DELETE', token }),
+  postForm: async <T>(path: string, form: FormData, token = true): Promise<T> => {
+    const headers: Record<string, string> = {};
+    if (token && getAccessToken()) {
+      headers['Authorization'] = `Bearer ${getAccessToken()}`;
+    }
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE}${path}`, { method: 'POST', headers, body: form });
+    } catch {
+      throw new ApiError(0, 'network_error', 'Network request failed');
+    }
+    if (!response.ok) {
+      let code = 'unknown_error';
+      let message = response.statusText;
+      try {
+        const payload = (await response.json()) as { code?: string; message?: string };
+        code = payload.code ?? code;
+        message = payload.message ?? message;
+      } catch {
+        // non-JSON error body, keep defaults
+      }
+      throw new ApiError(response.status, code, message);
+    }
+    return (await response.json()) as T;
+  },
 };
 
 export interface HealthResponse {

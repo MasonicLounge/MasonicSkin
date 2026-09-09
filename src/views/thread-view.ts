@@ -2,9 +2,9 @@ import { LitElement, html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import type { RouterLocation } from '@vaadin/router';
 import { ApiError } from '../api/client.js';
-import { createPost, fetchThread, fetchThreadPosts } from '../api/endpoints.js';
+import { createPost, fetchThread, fetchThreadPosts, uploadAttachment } from '../api/endpoints.js';
 import { isLoggedIn } from '../auth/session.js';
-import type { PostSummary, ThreadSummary } from '../api/types.js';
+import type { AttachmentWithOwner, PostSummary, ThreadSummary } from '../api/types.js';
 
 function formatDate(value: string): string {
   return new Date(value).toLocaleString();
@@ -83,6 +83,32 @@ export class ThreadView extends LitElement {
       line-height: 1.6;
     }
 
+    .attachments {
+      margin-top: var(--space-4);
+      display: grid;
+      gap: var(--space-2);
+    }
+
+    .attachments img {
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border);
+      max-height: 24rem;
+    }
+
+    .file-label {
+      margin: var(--space-2) 0 var(--space-3);
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+    }
+
+    .file-label input {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+    }
+
     .edited {
       margin-top: var(--space-3);
       font-size: var(--font-size-xs);
@@ -130,6 +156,7 @@ export class ThreadView extends LitElement {
   @state() private loading = true;
   @state() private error = '';
   @state() private reply = '';
+  @state() private selectedFiles: File[] = [];
   @state() private submitting = false;
   @state() private replyError = '';
 
@@ -164,9 +191,18 @@ export class ThreadView extends LitElement {
     }
     this.submitting = true;
     try {
-      const created = await createPost(id!, { body: this.reply.trim() });
+      const ids: string[] = [];
+      for (const file of this.selectedFiles) {
+        const att = await uploadAttachment(file);
+        ids.push(att.id);
+      }
+      const created = await createPost(id!, {
+        body: this.reply.trim(),
+        attachment_ids: ids.length > 0 ? ids : undefined,
+      });
       this.posts = [...this.posts, created];
       this.reply = '';
+      this.selectedFiles = [];
       if (this.thread) {
         this.thread = { ...this.thread, post_count: this.thread.post_count + 1, last_post_at: created.created_at };
       }
@@ -175,6 +211,22 @@ export class ThreadView extends LitElement {
     } finally {
       this.submitting = false;
     }
+  }
+
+  private renderAttachments(atts?: AttachmentWithOwner[] | null) {
+    if (!atts || atts.length === 0) {
+      return '';
+    }
+    return html`
+      <div class="attachments">
+        ${atts.map(
+          (a) =>
+            a.content_type.startsWith('image/')
+              ? html`<img src=${a.public_url} alt=${a.filename} loading="lazy" />`
+              : html`<a href=${a.public_url} target="_blank" rel="noopener">${a.filename}</a>`,
+        )}
+      </div>
+    `;
   }
 
   override render() {
@@ -207,6 +259,7 @@ export class ThreadView extends LitElement {
                               <span class="timestamp">${formatDate(p.created_at)}</span>
                             </div>
                             <div class="post-body">${p.body}</div>
+                            ${this.renderAttachments(p.attachments)}
                             ${p.edited_at
                               ? html`<div class="edited">edited ${formatDate(p.edited_at)}</div>`
                               : ''}
@@ -225,6 +278,20 @@ export class ThreadView extends LitElement {
                         this.submitReply();
                       }}>
                         <textarea rows="6" .value=${this.reply} @input=${(e: Event) => (this.reply = (e.target as HTMLTextAreaElement).value)} maxlength="50000" placeholder="Write a reply…"></textarea>
+                        <label class="file-label">
+                          <span>Attach files:</span>
+                          <input
+                            type="file"
+                            multiple
+                            @change=${(e: Event) => {
+                              const input = e.target as HTMLInputElement;
+                              this.selectedFiles = Array.from(input.files ?? []);
+                            }}
+                          />
+                        </label>
+                        ${this.selectedFiles.length > 0
+                          ? html`<p class="meta">${this.selectedFiles.map((f) => f.name).join(', ')}</p>`
+                          : ''}
                         <button type="submit" ?disabled=${this.submitting || !!this.thread?.locked}>
                           ${this.submitting ? 'Posting…' : 'Post reply'}
                         </button>

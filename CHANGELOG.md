@@ -6,6 +6,22 @@ Entries are bilingual (English / Russian).
 
 ## [Unreleased]
 
+### Added / Добавлено
+
+- Global form styling (inputs, textarea, select, labels, buttons — primary/secondary) based on the design tokens in both light and dark themes; install wizard form laid out as a centered column.
+- Глобальные стили форм (input, textarea, select, label, кнопки — primary/secondary) на базе дизайн-токенов в светлой и тёмной темах; форма мастера установки выровнена колонкой по центру.
+
+- Forum name from `GET /api/v1/settings` is now shown in the header brand and in the document title (falls back to “Masonic Lounge”).
+- Название форума из `GET /api/v1/settings` теперь отображается в шапке и в заголовке вкладки (по умолчанию — “Masonic Lounge”).
+
+- Attachments in replies and threads: file picker in the reply and new-thread composers, upload to MinIO via `POST /api/v1/media/attachments`, and image/preview rendering (images inline, other files as links).
+- Вложения в ответах и темах: выбор файлов в формах ответа и создания темы, загрузка в MinIO через `POST /api/v1/media/attachments`, отрисовка (картинки — инлайн, прочие файлы — ссылками).
+
+### Fixed / Исправлено
+
+- Router was never initialized because the `#outlet` lookup ran in module scope while the outlet lives inside the `app-shell` shadow DOM — views (install wizard, home, etc.) rendered as an empty page. The router is now bound to the shadow outlet from `app-shell` via a new `initRouter()` helper.
+- Роутер не инициализировался: поиск `#outlet` выполнялся на этапе загрузки модуля, а выход находился в shadow DOM `app-shell` — представления (мастер установки, главная и др.) не рендерились, оставаясь пустой страницей. Роутер теперь привязывается к shadow-outlet из `app-shell` через новый хелпер `initRouter()`.
+
 ## [0.1.0] - 2026-09-09
 
 ### Added / Добавлено

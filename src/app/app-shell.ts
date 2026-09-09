@@ -1,7 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import * as session from '../auth/session.js';
-import { navigate } from '../router.js';
+import { navigate, initRouter } from '../router.js';
 
 const THEME_KEY = 'masonic_theme';
 
@@ -147,8 +147,12 @@ export class AppShell extends LitElement {
 
   @state() private dark = document.documentElement.dataset.theme === 'dark';
   @state() private user = session.currentUser;
+  @state() private forumName = '';
 
   override firstUpdated(): void {
+    const outlet = this.renderRoot.querySelector<HTMLElement>('#outlet');
+    if (outlet) initRouter(outlet);
+
     const stored = localStorage.getItem(THEME_KEY);
     if (stored !== null) {
       this.dark = stored === 'dark';
@@ -161,6 +165,18 @@ export class AppShell extends LitElement {
       this.user = session.currentUser;
     });
     void this.guardInstall();
+    void this.loadPublicSettings();
+  }
+
+  private async loadPublicSettings(): Promise<void> {
+    try {
+      const { fetchPublicSettings } = await import('../api/endpoints.js');
+      const settings = await fetchPublicSettings();
+      this.forumName = settings.forum_name ?? '';
+      document.title = this.forumName ? `${this.forumName} — Masonic Lounge` : 'Masonic Lounge';
+    } catch {
+      // backend unreachable — keep the default title and brand
+    }
   }
 
   private async guardInstall(): Promise<void> {
@@ -204,7 +220,7 @@ export class AppShell extends LitElement {
         <div class="header-inner">
           <a href="/" class="brand" aria-label="Masonic Lounge home">
             <img class="brand-img" src="/favicon.svg" alt="" aria-hidden="true" />
-            <span>Masonic Lounge</span>
+            <span>${this.forumName || 'Masonic Lounge'}</span>
           </a>
           <nav aria-label="Main navigation">
             <a href="/" router-link><ml-icon name="home" size="18"></ml-icon>Forums</a>

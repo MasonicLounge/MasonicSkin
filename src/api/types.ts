@@ -63,6 +63,7 @@ export interface PostSummary {
   updated_at: string;
   author_username: string;
   author_display_name: string;
+  attachments?: AttachmentWithOwner[] | null;
 }
 
 export interface Notification {

@@ -40,6 +40,95 @@ button {
   cursor: pointer;
 }
 
+button.secondary {
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  transition: border-color var(--transition-base), color var(--transition-base);
+}
+
+button.secondary:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+button[type='submit'] {
+  background: var(--color-primary);
+  color: var(--color-bg);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  transition: background var(--transition-base), opacity var(--transition-base);
+}
+
+button[type='submit']:hover {
+  opacity: 0.9;
+}
+
+button[type='submit']:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+label {
+  display: block;
+  margin: 0 0 var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+input[type='text'],
+input[type='email'],
+input[type='password'],
+input[type='url'],
+input[type='search'],
+input[type='number'],
+textarea,
+select {
+  display: block;
+  width: 100%;
+  font: inherit;
+  color: var(--color-text);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-2);
+  margin: 0 0 var(--space-3);
+  outline: none;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 6rem;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--color-text-secondary);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 25%, transparent);
+}
+
+input[type='file'] {
+  font: inherit;
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--space-3);
+}
+
+form p.error {
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+  margin: 0 0 var(--space-3);
+}
+
 img {
   max-width: 100%;
   height: auto;

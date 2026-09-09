@@ -2,7 +2,7 @@ import { LitElement, html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import type { RouterLocation } from '@vaadin/router';
 import { ApiError } from '../api/client.js';
-import { createThread, fetchGroup, fetchGroupThreads } from '../api/endpoints.js';
+import { createThread, fetchGroup, fetchGroupThreads, uploadAttachment } from '../api/endpoints.js';
 import { isLoggedIn } from '../auth/session.js';
 import { navigate } from '../router.js';
 import type { Group, ThreadSummary } from '../api/types.js';
@@ -108,10 +108,39 @@ export class GroupView extends LitElement {
       margin-bottom: var(--space-3);
     }
 
+    .file-label {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      margin: 0 0 var(--space-3);
+    }
+
+    .file-label input {
+      width: auto;
+      margin: 0;
+    }
+
+    .file-label:hover {
+      color: var(--color-primary);
+    }
+
+    .file-label:has(input:disabled) {
+      opacity: 0.5;
+    }
+
     .composer .actions {
       display: flex;
       gap: var(--space-3);
       align-items: center;
+    }
+
+    .meta {
+      font-size: var(--font-size-sm);
+      color: var(--color-text-secondary);
+      margin: 0 0 var(--space-3);
+      overflow-wrap: anywhere;
     }
 
     .error {
@@ -136,6 +165,7 @@ export class GroupView extends LitElement {
   @state() private error = '';
   @state() private threadTitle = '';
   @state() private body = '';
+  @state() private selectedFiles: File[] = [];
   @state() private submitting = false;
   @state() private composerError = '';
 
@@ -174,7 +204,16 @@ export class GroupView extends LitElement {
     }
     this.submitting = true;
     try {
-      const created = await createThread(id!, { title: this.threadTitle.trim(), body: this.body.trim() });
+      const attachmentIds: string[] = [];
+      for (const file of this.selectedFiles) {
+        const uploaded = await uploadAttachment(file);
+        attachmentIds.push(uploaded.id);
+      }
+      const created = await createThread(id!, {
+        title: this.threadTitle.trim(),
+        body: this.body.trim(),
+        attachment_ids: attachmentIds.length > 0 ? attachmentIds : undefined,
+      });
       navigate(`/threads/${created.id}`);
     } catch (err) {
       this.composerError = err instanceof ApiError ? err.message : 'Failed to create thread';
@@ -233,6 +272,20 @@ export class GroupView extends LitElement {
                         <input id="thread-title" .value=${this.threadTitle} @input=${(e: Event) => (this.threadTitle = (e.target as HTMLInputElement).value)} maxlength="200" />
                         <label for="thread-body">Message</label>
                         <textarea id="thread-body" rows="6" .value=${this.body} @input=${(e: Event) => (this.body = (e.target as HTMLTextAreaElement).value)} maxlength="50000"></textarea>
+                        <label class="file-label" for="thread-files">
+                          <span>Attach files:</span>
+                          <input
+                            id="thread-files"
+                            type="file"
+                            multiple
+                            ?disabled=${this.submitting}
+                            @change=${(e: Event) => {
+                              const input = e.target as HTMLInputElement;
+                              this.selectedFiles = Array.from(input.files ?? []);
+                            }}
+                          />
+                        </label>
+                        ${this.selectedFiles.length > 0 ? html`<p class="meta">${this.selectedFiles.map((f) => f.name).join(', ')}</p>` : ''}
                         <div class="actions">
                           <button type="submit" ?disabled=${this.submitting}>
                             ${this.submitting ? 'Posting…' : 'Post thread'}

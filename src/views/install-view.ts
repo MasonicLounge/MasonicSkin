@@ -1,4 +1,4 @@
-import { html, LitElement } from 'lit';
+import { css, html, LitElement } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 
 import { navigate } from '../router.js';
@@ -6,6 +6,15 @@ import { fetchInstallStatus, submitInstall } from '../api/endpoints.js';
 
 @customElement('install-view')
 export class InstallView extends LitElement {
+  static styles = css`
+    .install {
+      max-width: 34rem;
+      margin: var(--space-8) auto;
+    }
+    .install form {
+      margin-top: var(--space-4);
+    }
+  `;
   @state() private checking = true;
   @state() private submitting = false;
   @state() private error = '';
