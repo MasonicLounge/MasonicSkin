@@ -8,6 +8,9 @@ Entries are bilingual (English / Russian).
 
 ### Added / Добавлено
 
+- Bilingual README (`README.md`) describing the module: responsibility, implemented features, tech stack, repository layout, development, tests and license; dynamic shields.io badges (CI, commit activity, contributors, last commit).
+- Двуязычное README (`README.md`): назначение модуля, реализованные возможности, стек, структура репозитория, разработка, тесты и лицензия; динамические бейджи shields.io (CI, активность коммитов, контрибуторы, последний коммит).
+
 - CI workflow (GitHub Actions): `npm ci` + typecheck on every push/PR; publishes the container image to `ghcr.io/masoniclounge/masonicskin:<version>` on release tags `vX.Y.Z`.
 - CI workflow (GitHub Actions): `npm ci` + typecheck на каждый push/PR; публикация образа контейнера в `ghcr.io/masoniclounge/masonicskin:<version>` по релизным тегам `vX.Y.Z`.
 
