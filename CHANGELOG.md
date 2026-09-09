@@ -8,6 +8,13 @@ Entries are bilingual (English / Russian).
 
 ### Added / Добавлено
 
+- Install wizard at `/install`: first-run setup form (forum name + administrator
+  account) with a startup guard that redirects to `/install` while the forum is
+  not yet set up (`GET`/`POST /api/v1/install`).
+  Рус.: Мастер установки на `/install`: форма первичной настройки (название
+  форума + аккаунт администратора) с гардом при старте, который перенаправляет
+  на `/install`, пока форум не настроен (`GET`/`POST /api/v1/install`).
+
 - Public forum pages wired to the MasonicCore API: forum categories, threads
   and posts with persistent pagination helpers, plus create-thread/reply forms.
   Рус.: Публичные страницы форума, подключённые к API MasonicCore: категории,
