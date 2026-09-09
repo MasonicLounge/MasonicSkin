@@ -3,6 +3,7 @@ import { customElement, state } from 'lit/decorators.js';
 
 import { navigate } from '../router.js';
 import { fetchInstallStatus, submitInstall } from '../api/endpoints.js';
+import { subscribeLocale, t } from '../i18n/index.js';
 
 @customElement('install-view')
 export class InstallView extends LitElement {
@@ -14,14 +15,33 @@ export class InstallView extends LitElement {
     .install form {
       margin-top: var(--space-4);
     }
+    ol.steps {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+    ol.steps li {
+      margin: 0 0 var(--space-4);
+    }
+    ol.steps li:last-child {
+      margin-bottom: 0;
+    }
   `;
   @state() private checking = true;
   @state() private submitting = false;
   @state() private error = '';
 
+  private unsubscribeLocale: (() => void) | null = null;
+
   connectedCallback() {
     super.connectedCallback();
+    this.unsubscribeLocale = subscribeLocale(() => this.requestUpdate());
     void this.checkStatus();
+  }
+
+  disconnectedCallback() {
+    this.unsubscribeLocale?.();
+    super.disconnectedCallback();
   }
 
   private async checkStatus() {
@@ -32,7 +52,7 @@ export class InstallView extends LitElement {
         navigate('/');
       }
     } catch {
-      this.error = 'Unable to reach the server. Please try again.';
+      this.error = t('install.server_unreachable');
     } finally {
       this.checking = false;
     }
@@ -48,11 +68,11 @@ export class InstallView extends LitElement {
     const adminPassword = String(data.get('admin_password') ?? '');
 
     if (!forumName || !adminUsername || !adminEmail || !adminPassword) {
-      this.error = 'All fields are required.';
+      this.error = t('install.all_required');
       return;
     }
     if (adminPassword.length < 8) {
-      this.error = 'Password must be at least 8 characters long.';
+      this.error = t('install.password_min');
       return;
     }
 
@@ -62,7 +82,7 @@ export class InstallView extends LitElement {
       await submitInstall({ forum_name: forumName, admin_username: adminUsername, admin_email: adminEmail, admin_password: adminPassword });
       navigate('/login');
     } catch (err) {
-      this.error = err instanceof Error ? err.message : 'Installation failed. Please check your details.';
+      this.error = err instanceof Error ? err.message : t('install.failed');
     } finally {
       this.submitting = false;
     }
@@ -70,34 +90,44 @@ export class InstallView extends LitElement {
 
   render() {
     if (this.checking) {
-      return html`<section class="card"><p>Checking setup status…</p></section>`;
+      return html`<section class="card"><p>${t('install.checking')}</p></section>`;
     }
     return html`
       <section class="install">
-        <h1>Set up your forum</h1>
-        <p class="muted">This is the first-run setup. It will create the administrator account and initialize the forum.</p>
+        <h1>${t('install.title')}</h1>
+        <p class="muted">${t('install.subtitle')}</p>
 
         <form @submit=${this.onInstall}>
-          <label>
-            Forum name
-            <input name="forum_name" maxlength="100" required autocomplete="off" />
-          </label>
-          <label>
-            Administrator username
-            <input name="admin_username" minlength="3" maxlength="32" required autocomplete="username" />
-          </label>
-          <label>
-            Administrator email
-            <input name="admin_email" type="email" required autocomplete="email" />
-          </label>
-          <label>
-            Password
-            <input name="admin_password" type="password" minlength="8" required autocomplete="new-password" />
-          </label>
+          <ol class="steps">
+            <li>
+              <label>
+                ${t('install.forum_name')}
+                <input name="forum_name" maxlength="100" required autocomplete="off" />
+              </label>
+            </li>
+            <li>
+              <label>
+                ${t('install.admin_username')}
+                <input name="admin_username" minlength="3" maxlength="32" required autocomplete="username" />
+              </label>
+            </li>
+            <li>
+              <label>
+                ${t('install.admin_email')}
+                <input name="admin_email" type="email" required autocomplete="email" />
+              </label>
+            </li>
+            <li>
+              <label>
+                ${t('login.password')}
+                <input name="admin_password" type="password" minlength="8" required autocomplete="new-password" />
+              </label>
+            </li>
+          </ol>
 
           ${this.error ? html`<p class="error">${this.error}</p>` : ''}
 
-          <button type="submit" ?disabled=${this.submitting}>${this.submitting ? 'Setting up…' : 'Create administrator'}</button>
+          <button type="submit" ?disabled=${this.submitting}>${this.submitting ? t('install.setting_up') : t('install.create_admin')}</button>
         </form>
       </section>
     `;

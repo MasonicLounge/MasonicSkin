@@ -1,5 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
+import { t } from '../i18n/index.js';
 
 /**
  * `about-view` renders the project description and links to the source repositories.
@@ -33,19 +34,16 @@ export class AboutView extends LitElement {
 
   override render() {
     return html`
-      <h1>About</h1>
+      <h1>${t('about.title')}</h1>
       <section>
-        <p>
-          Masonic Lounge is an open-source, self-hostable forum engine built around a small,
-          explicit stack: Go + PostgreSQL + MinIO on the backend, Lit + TypeScript + Vite on the frontend.
-        </p>
+        <p>${t('about.p1')}</p>
       </section>
       <section>
         <ul>
-          <li>Multi-repo: <strong>MasonicCore</strong> (Go API) and <strong>MasonicSkin</strong> (web client)</li>
-          <li>JWT auth with refresh sessions, argon2id password hashing</li>
-          <li>Realtime private messages, notifications and presence via WebSocket</li>
-          <li>S3-compatible media storage (avatars, attachments)</li>
+          <li>${t('about.repo')}</li>
+          <li>${t('about.auth')}</li>
+          <li>${t('about.realtime')}</li>
+          <li>${t('about.media')}</li>
         </ul>
       </section>
     `;

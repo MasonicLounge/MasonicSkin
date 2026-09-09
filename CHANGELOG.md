@@ -17,6 +17,39 @@ Entries are bilingual (English / Russian).
 - Attachments in replies and threads: file picker in the reply and new-thread composers, upload to MinIO via `POST /api/v1/media/attachments`, and image/preview rendering (images inline, other files as links).
 - Вложения в ответах и темах: выбор файлов в формах ответа и создания темы, загрузка в MinIO через `POST /api/v1/media/attachments`, отрисовка (картинки — инлайн, прочие файлы — ссылками).
 
+- WebSocket client (`src/ws/client.ts`): typed realtime events (`pm`, `notification`, `presence`), automatic reconnection with exponential backoff (up to 30 s), connection lifecycle management. Connected whenever a session starts, disconnected on logout.
+- Веб-сокет-клиент (`src/ws/client.ts`): типизированные realtime-события (`pm`, `notification`, `presence`), автоматическое переподключение с экспоненциальной задержкой (до 30 с), управление жизненным циклом соединения. Подключается при старте сессии, отключается при выходе.
+
+- Private messages view at `/pms`: conversation list, one-on-one chat, reply box (Ctrl+Enter to send), new-conversation composer, live message appending over WebSocket.
+- Страница личных сообщений на `/pms`: список диалогов, чат один-на-один, поле ответа (отправка по Ctrl+Enter), форма нового диалога, живые сообщения через WebSocket.
+
+- Notifications dropdown in the header (`notifications-dropdown`): bell icon with unread count badge (messages + notifications), live refresh on realtime events, “mark all read”, navigation to messages.
+- Выпадающая панель уведомлений в шапке (`notifications-dropdown`): колокольчик со счётчиком непрочитанного (сообщения + уведомления), обновление в реальном времени, «прочитать всё», переход к сообщениям.
+
+- Presence indicators (`presence-dot` + `src/ws/presence.ts` store): online/offline dots next to thread authors, post authors and on the profile page, driven by WebSocket presence events with initial bootstrap from `GET /api/v1/presence`.
+- Индикаторы присутствия (`presence-dot` + стор `src/ws/presence.ts`): точки онлайн/офлайн рядом с авторами тем, постов и на странице профиля; работают через события присутствия WebSocket с начальной загрузкой из `GET /api/v1/presence`.
+
+- New API client helpers in `src/api/endpoints.ts` for private messages, notifications, unread counts and presence; new DTO types (`PrivateMessage`, `PMConversation`, `PresenceUpdate`) and `Notification` in `src/api/types.ts`.
+- Новые хелперы API-клиента в `src/api/endpoints.ts` для личных сообщений, уведомлений, счётчиков непрочитанного и присутствия; новые DTO (`PrivateMessage`, `PMConversation`, `PresenceUpdate`) и `Notification` в `src/api/types.ts`.
+
+- New inline SVG icons: `bell`, `x`, `chevron-down`.
+- Новые инлайн-иконки SVG: `bell`, `x`, `chevron-down`.
+
+- Internationalization (i18n): lightweight custom module `src/i18n/index.ts` (no new dependencies) with locale catalogs `src/locales/en.json` and `src/locales/ru.json` (Crowdin-compatible flat key format), `getLocale`/`setLocale`/`subscribeLocale`/`t()` helpers, language detection (saved preference → browser language) and a language switcher in the header (English/Русский). All views and components now render translated strings; dates/times use the active locale.
+- Интернационализация (i18n): лёгкий самописный модуль `src/i18n/index.ts` (без новых зависимостей) с каталогами локалей `src/locales/en.json` и `src/locales/ru.json` (плоский формат ключей, совместимый с Crowdin), хелперы `getLocale`/`setLocale`/`subscribeLocale`/`t()`, определение языка (сохранённая настройка → язык браузера) и переключатель языка в шапке (English/Русский). Все представления и компоненты теперь рендерят переведённые строки; даты/время используют активную локаль.
+
+- Profile editing at `/profile`: display name update (`PATCH /api/v1/auth/me`), avatar upload (`POST /api/v1/media/avatar`), password change (`POST /api/v1/auth/change-password`). In-memory session state is refreshed so the brand/header react immediately.
+- Редактирование профиля на `/profile`: смена отображаемого имени (`PATCH /api/v1/auth/me`), загрузка аватара (`POST /api/v1/media/avatar`), смена пароля (`POST /api/v1/auth/change-password`). Локальное состояние сессии обновляется, шапка реагирует сразу.
+
+- Reusable component library in `src/components/`: `ml-loading` (localized loading indicator), `ml-message` (info/error/success status line), `ml-badge` (accent/primary pill label), `ml-avatar` (image with initials fallback), `ml-card` (surface container) and `ml-button` (primary/secondary/danger). Adopted by the home, group, thread, profile and composer views.
+- Библиотека переиспользуемых компонентов в `src/components/`: `ml-loading` (локализованный индикатор загрузки), `ml-message` (строка состояния info/error/success), `ml-badge` (пилюля accent/primary), `ml-avatar` (изображение с запасным вариантом — инициалы), `ml-card` (контейнер-поверхность) и `ml-button` (primary/secondary/danger). Используются в представлениях главной, группы, темы, профиля и композерах.
+
+- Pagination UI (`ml-pagination`): previous/next navigation with a page counter for thread lists, post lists, admin user/media tables and the PM inbox, driven by the `limit`/`offset` window returned by the API.
+- Пагинация (`ml-pagination`): навигация «назад/вперёд» со счётчиком страниц для списков тем, постов, таблиц пользователей/медиа в админке и входящих ЛС, на основе окна `limit`/`offset`, возвращаемого API.
+
+- Test setup: `@web/test-runner` with the Playwright Chromium launcher, `@web/dev-server-esbuild` (TS + JSON) and `@open-wc/testing`. Tests cover the i18n module (`t()`, locale switching, interpolation) and the `ml-pagination` component (page info, disabled states, `page-change` events). CI now runs typecheck and the test suite with Playwright Chromium installed.
+- Настройка тестов: `@web/test-runner` с Playwright Chromium, `@web/dev-server-esbuild` (TS + JSON) и `@open-wc/testing`. Тесты покрывают модуль i18n (`t()`, переключение локали, интерполяция) и компонент `ml-pagination` (счётчик страниц, disabled-состояния, события `page-change`). CI теперь запускает typecheck и тесты с установленным Playwright Chromium.
+
 ### Fixed / Исправлено
 
 - Router was never initialized because the `#outlet` lookup ran in module scope while the outlet lives inside the `app-shell` shadow DOM — views (install wizard, home, etc.) rendered as an empty page. The router is now bound to the shadow outlet from `app-shell` via a new `initRouter()` helper.

@@ -15,6 +15,8 @@ import {
   putAdminSettings,
   deleteAttachment,
 } from '../api/endpoints.js';
+import { subscribeLocale, t } from '../i18n/index.js';
+import '../components/ml-pagination.js';
 
 const ROLE_KEYS = ['admin', 'moderator', 'member'];
 const STATUS_KEYS = ['active', 'banned', 'pending'];
@@ -185,12 +187,20 @@ export class AdminView extends LitElement {
   @state() private settings: ForumSettings | null = null;
   @state() private version: VersionResponse | null = null;
 
+  @state() private usersTotal = 0;
+  @state() private usersOffset = 0;
+  @state() private mediaTotal = 0;
+  @state() private mediaOffset = 0;
+  @state() private pageSize = 50;
+
   @state() private savedMessage = '';
 
   private unsubscribe: (() => void) | null = null;
+  private unsubscribeLocale: (() => void) | null = null;
 
   override async connectedCallback(): Promise<void> {
     super.connectedCallback();
+    this.unsubscribeLocale = subscribeLocale(() => this.requestUpdate());
     await this.guard();
     this.unsubscribe = session.subscribeSession(() => {
       if (!session.currentRoles.includes('admin')) {
@@ -202,6 +212,7 @@ export class AdminView extends LitElement {
 
   override disconnectedCallback(): void {
     this.unsubscribe?.();
+    this.unsubscribeLocale?.();
     super.disconnectedCallback();
   }
 
@@ -232,16 +243,22 @@ export class AdminView extends LitElement {
       if (tab === 'groups') {
         this.groups = (await fetchGroups()).items;
       } else if (tab === 'users') {
-        this.users = (await fetchAdminUsers(100)).items;
+        const page = await fetchAdminUsers(this.pageSize, 0);
+        this.users = page.items;
+        this.usersTotal = page.total;
+        this.usersOffset = 0;
       } else if (tab === 'settings') {
         this.settings = await fetchAdminSettings();
       } else if (tab === 'media') {
-        this.media = (await fetchAdminMedia(100)).items;
+        const page = await fetchAdminMedia(this.pageSize, 0);
+        this.media = page.items;
+        this.mediaTotal = page.total;
+        this.mediaOffset = 0;
       } else if (tab === 'version') {
         this.version = await fetchVersion();
       }
     } catch (err) {
-      this.error = err instanceof ApiError ? err.message : 'Failed to load';
+      this.error = err instanceof ApiError ? err.message : t('admin.load_failed');
     } finally {
       this.busy = false;
     }
@@ -254,7 +271,7 @@ export class AdminView extends LitElement {
 
   override render() {
     return html`
-      <h1>Admin panel</h1>
+      <h1>${t('admin.title')}</h1>
       ${this.savedMessage ? html`<p class="summary">✓ ${this.savedMessage}</p>` : ''}
       ${this.error ? html`<div class="error">${this.error}</div>` : ''}
       <nav class="tabs" role="tablist">
@@ -266,12 +283,12 @@ export class AdminView extends LitElement {
               aria-selected=${this.activeTab === tab}
               @click=${() => void this.switchTab(tab)}
             >
-              ${tab.charAt(0).toUpperCase() + tab.slice(1)}
+              ${t(`admin.tab.${tab}`)}
             </button>
           `,
         )}
       </nav>
-      ${this.busy ? html`<p>Loading…</p>` : this.renderTab(this.activeTab)}
+      ${this.busy ? html`<p>${t('common.loading')}</p>` : this.renderTab(this.activeTab)}
     `;
   }
 
@@ -295,15 +312,15 @@ export class AdminView extends LitElement {
   private renderGroups() {
     return html`
       <details>
-        <summary>New group</summary>
+        <summary>${t('admin.new_group')}</summary>
         <form class="form-grid" @submit=${(e: SubmitEvent) => void this.onCreateGroup(e)}>
-          <input name="name" placeholder="Name" maxlength="100" required />
-          <input name="slug" placeholder="slug (lowercase, hyphens)" pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="80" required />
-          <input name="description" placeholder="Description (optional)" maxlength="2000" />
-          <button class="primary" type="submit">Create group</button>
+          <input name="name" placeholder=${t('admin.placeholder.name')} maxlength="100" required />
+          <input name="slug" placeholder=${t('admin.placeholder.slug')} pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="80" required />
+          <input name="description" placeholder=${t('admin.placeholder.description')} maxlength="2000" />
+          <button class="primary" type="submit">${t('admin.create_group')}</button>
         </form>
       </details>
-      <p class="hint">${this.groups.length} group(s)</p>
+      <p class="hint">${t('admin.group_count', { count: this.groups.length })}</p>
       ${this.groups.map((g) => this.renderGroupRow(g))}
     `;
   }
@@ -313,11 +330,11 @@ export class AdminView extends LitElement {
       <div class="group-card">
         <div>
           <strong>${g.name}</strong>
-          <span class="summary"> /${g.slug} · ${g.description || 'no description'}</span>
+          <span class="summary"> /${g.slug} · ${g.description || t('admin.no_description')}</span>
         </div>
         <div>
-          <a href="/groups/${g.id}" class="hint">view →</a>
-          <button class="danger" @click=${() => void this.onDeleteGroup(g.id)}>Delete</button>
+          <a href="/groups/${g.id}" class="hint">${t('admin.view')}</a>
+          <button class="danger" @click=${() => void this.onDeleteGroup(g.id)}>${t('admin.delete')}</button>
         </div>
       </div>
     `;
@@ -335,32 +352,62 @@ export class AdminView extends LitElement {
       });
       this.groups = [...this.groups, group];
       form.reset();
-      this.flash('Group created');
+      this.flash(t('admin.group_created'));
     } catch (err) {
-      this.error = err instanceof ApiError ? err.message : 'Failed to create group';
+      this.error = err instanceof ApiError ? err.message : t('admin.create_group_failed');
     }
   }
 
   private async onDeleteGroup(id: string): Promise<void> {
-    if (!window.confirm('Delete this group? All its threads will be removed.')) return;
+    if (!window.confirm(t('admin.confirm_delete_group'))) return;
     try {
       await deleteGroup(id);
       this.groups = this.groups.filter((g) => g.id !== id);
-      this.flash('Group deleted');
+      this.flash(t('admin.group_deleted'));
     } catch (err) {
-      this.error = err instanceof ApiError ? err.message : 'Failed to delete group';
+      this.error = err instanceof ApiError ? err.message : t('admin.delete_group_failed');
+    }
+  }
+
+  private async onUsersPage(e: CustomEvent<number>): Promise<void> {
+    this.busy = true;
+    this.error = '';
+    try {
+      const page = await fetchAdminUsers(this.pageSize, e.detail);
+      this.users = page.items;
+      this.usersTotal = page.total;
+      this.usersOffset = e.detail;
+    } catch (err) {
+      this.error = err instanceof ApiError ? err.message : t('admin.load_failed');
+    } finally {
+      this.busy = false;
+    }
+  }
+
+  private async onMediaPage(e: CustomEvent<number>): Promise<void> {
+    this.busy = true;
+    this.error = '';
+    try {
+      const page = await fetchAdminMedia(this.pageSize, e.detail);
+      this.media = page.items;
+      this.mediaTotal = page.total;
+      this.mediaOffset = e.detail;
+    } catch (err) {
+      this.error = err instanceof ApiError ? err.message : t('admin.load_failed');
+    } finally {
+      this.busy = false;
     }
   }
 
   private renderUsers() {
-    if (this.users.length === 0) return html`<p class="hint">No users yet.</p>`;
+    if (this.users.length === 0) return html`<p class="hint">${t('admin.no_users')}</p>`;
     return html`
       <table>
         <thead>
           <tr>
-            <th>User</th>
-            <th>Status</th>
-            <th>Roles</th>
+            <th>${t('admin.th.user')}</th>
+            <th>${t('admin.th.status')}</th>
+            <th>${t('admin.th.roles')}</th>
             <th></th>
           </tr>
         </thead>
@@ -368,6 +415,12 @@ export class AdminView extends LitElement {
           ${this.users.map((u) => this.renderUserRow(u))}
         </tbody>
       </table>
+      <ml-pagination
+        total=${this.usersTotal}
+        pageSize=${this.pageSize}
+        offset=${this.usersOffset}
+        @page-change=${(e: CustomEvent<number>) => void this.onUsersPage(e)}
+      ></ml-pagination>
     `;
   }
 
@@ -420,22 +473,22 @@ export class AdminView extends LitElement {
         next[idx] = updated;
         this.users = next;
       }
-      this.flash('User updated');
+      this.flash(t('admin.user_updated'));
     } catch (err) {
-      this.error = err instanceof ApiError ? err.message : 'Failed to update user';
+      this.error = err instanceof ApiError ? err.message : t('admin.user_update_failed');
     }
   }
 
   private renderSettings() {
-    if (!this.settings) return html`<p class="hint">No settings loaded.</p>`;
+    if (!this.settings) return html`<p class="hint">${t('admin.no_settings')}</p>`;
     const name = this.settings.forum_name;
     return html`
       <form class="form-grid" @submit=${(e: SubmitEvent) => void this.onSaveSettings(e)}>
         <label>
-          Forum name
+          ${t('admin.forum_name')}
           <input name="forum_name" value=${name} maxlength="100" required />
         </label>
-        <button class="primary" type="submit">Save settings</button>
+        <button class="primary" type="submit">${t('admin.save_settings')}</button>
       </form>
     `;
   }
@@ -449,21 +502,21 @@ export class AdminView extends LitElement {
         forum_name: String(data.get('forum_name') ?? ''),
       });
       this.settings = updated;
-      this.flash('Settings saved');
+      this.flash(t('admin.settings_saved'));
     } catch (err) {
-      this.error = err instanceof ApiError ? err.message : 'Failed to save settings';
+      this.error = err instanceof ApiError ? err.message : t('admin.settings_save_failed');
     }
   }
 
   private renderMedia() {
-    if (this.media.length === 0) return html`<p class="hint">No attachments yet.</p>`;
+    if (this.media.length === 0) return html`<p class="hint">${t('admin.no_media')}</p>`;
     return html`
       <table>
         <thead>
           <tr>
-            <th>File</th>
-            <th>Owner</th>
-            <th>Size</th>
+            <th>${t('admin.th.file')}</th>
+            <th>${t('admin.th.owner')}</th>
+            <th>${t('admin.th.size')}</th>
             <th></th>
           </tr>
         </thead>
@@ -473,41 +526,47 @@ export class AdminView extends LitElement {
               <tr>
                 <td><a href=${m.public_url} target="_blank" rel="noopener">${m.filename}</a></td>
                 <td>@${m.owner_username}</td>
-                <td>${(m.size_bytes / 1024).toFixed(1)} KiB</td>
+                <td>${t('admin.size_kib', { size: (m.size_bytes / 1024).toFixed(1) })}</td>
                 <td>
-                  <button class="danger" @click=${() => void this.onDeleteMedia(m.id)}>Delete</button>
+                  <button class="danger" @click=${() => void this.onDeleteMedia(m.id)}>${t('admin.delete')}</button>
                 </td>
               </tr>
             `,
           )}
         </tbody>
       </table>
+      <ml-pagination
+        total=${this.mediaTotal}
+        pageSize=${this.pageSize}
+        offset=${this.mediaOffset}
+        @page-change=${(e: CustomEvent<number>) => void this.onMediaPage(e)}
+      ></ml-pagination>
     `;
   }
 
   private async onDeleteMedia(id: string): Promise<void> {
-    if (!window.confirm('Delete this attachment?')) return;
+    if (!window.confirm(t('admin.confirm_delete_attachment'))) return;
     try {
       await deleteAttachment(id);
       this.media = this.media.filter((m) => m.id !== id);
-      this.flash('Attachment deleted');
+      this.flash(t('admin.attachment_deleted'));
     } catch (err) {
-      this.error = err instanceof ApiError ? err.message : 'Failed to delete attachment';
+      this.error = err instanceof ApiError ? err.message : t('admin.attachment_delete_failed');
     }
   }
 
   private renderVersion() {
-    if (!this.version) return html`<p class="hint">Version unavailable.</p>`;
+    if (!this.version) return html`<p class="hint">${t('admin.version_unavailable')}</p>`;
     return html`
       <table>
         <tbody>
           <tr>
-            <th>Backend</th>
+            <th>${t('admin.th.backend')}</th>
             <td>${this.version.backend}</td>
           </tr>
           <tr>
-            <th>Database schema</th>
-            <td>v${this.version.db}</td>
+            <th>${t('admin.th.db_schema')}</th>
+            <td>${t('admin.db_version', { version: this.version.db })}</td>
           </tr>
         </tbody>
       </table>

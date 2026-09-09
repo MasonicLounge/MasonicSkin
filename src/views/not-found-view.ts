@@ -1,5 +1,6 @@
 import { LitElement, html, css } from 'lit';
 import { customElement } from 'lit/decorators.js';
+import { t } from '../i18n/index.js';
 
 /**
  * `not-found-view` is shown for unmatched routes.
@@ -26,8 +27,8 @@ export class NotFoundView extends LitElement {
   override render() {
     return html`
       <h1>404</h1>
-      <p>This page does not exist.</p>
-      <a href="/" router-link>Go back home</a>
+      <p>${t('notfound.message')}</p>
+      <a href="/" router-link>${t('notfound.home')}</a>
     `;
   }
 }

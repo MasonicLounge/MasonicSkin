@@ -3,6 +3,7 @@ import { customElement, state } from 'lit/decorators.js';
 import { ApiError } from '../api/client.js';
 import { login, register } from '../auth/session.js';
 import { navigate } from '../router.js';
+import { subscribeLocale, t } from '../i18n/index.js';
 
 /** `register-view` creates an account and signs the user in. */
 @customElement('register-view')
@@ -54,14 +55,26 @@ export class RegisterView extends LitElement {
   @state() private error = '';
   @state() private busy = false;
 
+  private unsubscribeLocale: (() => void) | null = null;
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    this.unsubscribeLocale = subscribeLocale(() => this.requestUpdate());
+  }
+
+  override disconnectedCallback(): void {
+    this.unsubscribeLocale?.();
+    super.disconnectedCallback();
+  }
+
   private async submit(): Promise<void> {
     this.error = '';
     if (!this.username.trim() || !this.email.trim() || !this.password) {
-      this.error = 'All fields are required';
+      this.error = t('register.all_required');
       return;
     }
     if (this.password.length < 8) {
-      this.error = 'Password must be at least 8 characters';
+      this.error = t('register.password_min');
       return;
     }
     this.busy = true;
@@ -70,7 +83,7 @@ export class RegisterView extends LitElement {
       await login(user.username, this.password);
       navigate('/');
     } catch (err) {
-      this.error = err instanceof ApiError ? err.message : 'Registration failed';
+      this.error = err instanceof ApiError ? err.message : t('register.failed');
     } finally {
       this.busy = false;
     }
@@ -78,21 +91,21 @@ export class RegisterView extends LitElement {
 
   override render() {
     return html`
-      <h1>Sign up</h1>
+      <h1>${t('register.title')}</h1>
       <form @submit=${(e: Event) => {
         e.preventDefault();
         void this.submit();
       }}>
-        <label for="username">Username</label>
+        <label for="username">${t('register.username')}</label>
         <input id="username" autocomplete="username" .value=${this.username} @input=${(e: Event) => (this.username = (e.target as HTMLInputElement).value)} />
-        <label for="email">Email</label>
+        <label for="email">${t('register.email')}</label>
         <input id="email" type="email" autocomplete="email" .value=${this.email} @input=${(e: Event) => (this.email = (e.target as HTMLInputElement).value)} />
-        <label for="password">Password</label>
+        <label for="password">${t('login.password')}</label>
         <input id="password" type="password" autocomplete="new-password" .value=${this.password} @input=${(e: Event) => (this.password = (e.target as HTMLInputElement).value)} />
-        <button type="submit" ?disabled=${this.busy}>${this.busy ? 'Creating account…' : 'Sign up'}</button>
+        <button type="submit" ?disabled=${this.busy}>${this.busy ? t('register.creating') : t('register.title')}</button>
       </form>
       ${this.error ? html`<p class="error">${this.error}</p>` : ''}
-      <p class="switch">Already have an account? <a href="/login" router-link>Log in</a>.</p>
+      <p class="switch">${t('register.have_account')} <a href="/login" router-link>${t('nav.login')}</a>.</p>
     `;
   }
 }

@@ -14,6 +14,7 @@ export function initRouter(outlet: HTMLElement): void {
     { path: '/register', component: 'register-view' },
     { path: '/profile', component: 'profile-view' },
     { path: '/admin', component: 'admin-view' },
+    { path: '/pms', component: 'pms-view' },
     { path: '/install', component: 'install-view' },
     { path: '/groups/:id', component: 'group-view' },
     { path: '/threads/:id', component: 'thread-view' },

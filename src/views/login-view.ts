@@ -3,6 +3,7 @@ import { customElement, state } from 'lit/decorators.js';
 import { ApiError } from '../api/client.js';
 import { login } from '../auth/session.js';
 import { navigate } from '../router.js';
+import { subscribeLocale, t } from '../i18n/index.js';
 
 /** `login-view` signs a user in and stores the access token. */
 @customElement('login-view')
@@ -53,10 +54,22 @@ export class LoginView extends LitElement {
   @state() private error = '';
   @state() private busy = false;
 
+  private unsubscribeLocale: (() => void) | null = null;
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    this.unsubscribeLocale = subscribeLocale(() => this.requestUpdate());
+  }
+
+  override disconnectedCallback(): void {
+    this.unsubscribeLocale?.();
+    super.disconnectedCallback();
+  }
+
   private async submit(): Promise<void> {
     this.error = '';
     if (!this.identifier.trim() || !this.password) {
-      this.error = 'Username/email and password are required';
+      this.error = t('login.required');
       return;
     }
     this.busy = true;
@@ -64,7 +77,7 @@ export class LoginView extends LitElement {
       await login(this.identifier.trim(), this.password);
       navigate('/');
     } catch (err) {
-      this.error = err instanceof ApiError ? err.message : 'Login failed';
+      this.error = err instanceof ApiError ? err.message : t('login.failed');
     } finally {
       this.busy = false;
     }
@@ -72,19 +85,19 @@ export class LoginView extends LitElement {
 
   override render() {
     return html`
-      <h1>Log in</h1>
+      <h1>${t('login.title')}</h1>
       <form @submit=${(e: Event) => {
         e.preventDefault();
         void this.submit();
       }}>
-        <label for="identifier">Username or email</label>
+        <label for="identifier">${t('login.identifier')}</label>
         <input id="identifier" autocomplete="username" .value=${this.identifier} @input=${(e: Event) => (this.identifier = (e.target as HTMLInputElement).value)} />
-        <label for="password">Password</label>
+        <label for="password">${t('login.password')}</label>
         <input id="password" type="password" autocomplete="current-password" .value=${this.password} @input=${(e: Event) => (this.password = (e.target as HTMLInputElement).value)} />
-        <button type="submit" ?disabled=${this.busy}>${this.busy ? 'Signing in…' : 'Log in'}</button>
+        <button type="submit" ?disabled=${this.busy}>${this.busy ? t('login.signing_in') : t('login.title')}</button>
       </form>
       ${this.error ? html`<p class="error">${this.error}</p>` : ''}
-      <p class="switch">No account? <a href="/register" router-link>Sign up</a>.</p>
+      <p class="switch">${t('login.no_account')} <a href="/register" router-link>${t('nav.signup')}</a>.</p>
     `;
   }
 }

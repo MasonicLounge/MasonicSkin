@@ -4,8 +4,11 @@ import type {
   ForumSettings,
   Group,
   LoginResponse,
+  Notification,
   Paginated,
+  PMConversation,
   PostSummary,
+  PresenceUpdate,
   ThreadSummary,
   User,
   UserWithRoles,
@@ -75,6 +78,23 @@ export function fetchMe(): Promise<{ user: User; roles: string[] }> {
   return api.get<{ user: User; roles: string[] }>('/auth/me', true);
 }
 
+/** Upload an image as the caller's avatar (multipart). Returns the updated user. */
+export function uploadAvatar(file: File): Promise<User> {
+  const form = new FormData();
+  form.append('file', file);
+  return api.postForm<User>('/media/avatar', form);
+}
+
+/** Update the caller's profile (display name). */
+export function updateMe(input: { display_name: string }): Promise<{ user: User }> {
+  return api.patch<{ user: User }>('/auth/me', input, true);
+}
+
+/** Change the caller's password; revokes all refresh sessions. */
+export function changePassword(input: { current_password: string; new_password: string }): Promise<{ changed: boolean }> {
+  return api.post<{ changed: boolean }>('/auth/change-password', input, true);
+}
+
 export type InstallStatus = {
   installed: boolean;
   forum_name: string | null;
@@ -131,4 +151,46 @@ export function fetchAdminMedia(limit = 50, offset = 0): Promise<Paginated<Attac
 
 export function deleteAttachment(id: string): Promise<void> {
   return api.delete<void>(`/media/attachments/${id}`, true);
+}
+
+// --- Private messaging, notifications and presence ---
+
+export function fetchInbox(limit = 50, offset = 0): Promise<Paginated<PMConversation>> {
+  return api.get<Paginated<PMConversation>>(`/pms?limit=${limit}&offset=${offset}`, true);
+}
+
+export function fetchConversation(withUserID: string, limit = 50, offset = 0): Promise<Paginated<PMConversation>> {
+  return api.get<Paginated<PMConversation>>(`/pms/with?with=${withUserID}&limit=${limit}&offset=${offset}`, true);
+}
+
+export function sendPrivateMessage(input: { recipient_id: string; body: string }): Promise<PMConversation> {
+  return api.post<PMConversation>('/pms', input, true);
+}
+
+export function fetchUnreadCount(): Promise<{ messages: number; notifications: number }> {
+  return api.get<{ messages: number; notifications: number }>('/pms/unread-count', true);
+}
+
+export function markMessageRead(id: string): Promise<void> {
+  return api.patch<void>(`/pms/${id}/read`, {}, true);
+}
+
+export function fetchNotifications(limit = 50, offset = 0): Promise<Paginated<Notification>> {
+  return api.get<Paginated<Notification>>(`/notifications?limit=${limit}&offset=${offset}`, true);
+}
+
+export function markNotificationRead(id: string): Promise<void> {
+  return api.patch<void>(`/notifications/${id}/read`, {}, true);
+}
+
+export function markAllNotificationsRead(): Promise<void> {
+  return api.patch<void>('/notifications/read-all', {}, true);
+}
+
+export function fetchPresence(): Promise<string[]> {
+  return api.get<string[]>('/presence', true);
+}
+
+export function fetchUserPresence(userID: string): Promise<PresenceUpdate> {
+  return api.get<PresenceUpdate>(`/presence/${userID}`, true);
 }

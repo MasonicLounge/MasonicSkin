@@ -75,6 +75,25 @@ export interface Notification {
   created_at: string;
 }
 
+export interface PrivateMessage {
+  id: string;
+  sender_id: string;
+  recipient_id: string;
+  body: string;
+  read_at: string | null;
+  created_at: string;
+}
+
+export interface PMConversation extends PrivateMessage {
+  sender_username: string;
+  sender_display: string;
+}
+
+export interface PresenceUpdate {
+  user_id: string;
+  online: boolean;
+}
+
 export interface Paginated<T> {
   items: T[];
   total: number;

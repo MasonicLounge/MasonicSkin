@@ -3,6 +3,10 @@ import { customElement, state } from 'lit/decorators.js';
 import { ApiError } from '../api/client.js';
 import { fetchGroups } from '../api/endpoints.js';
 import type { Group } from '../api/types.js';
+import { subscribeLocale, t } from '../i18n/index.js';
+import '../components/ml-loading.js';
+import '../components/ml-message.js';
+import '../components/ml-card.js';
 
 /** `home-view` lists forum categories (groups). */
 @customElement('home-view')
@@ -88,31 +92,39 @@ export class HomeView extends LitElement {
   @state() private loading = true;
   @state() private error = '';
 
+  private unsubscribeLocale: (() => void) | null = null;
+
   override async connectedCallback(): Promise<void> {
     super.connectedCallback();
+    this.unsubscribeLocale = subscribeLocale(() => this.requestUpdate());
     try {
       const res = await fetchGroups();
       this.groups = res.items;
     } catch (err) {
-      this.error = err instanceof ApiError ? err.message : 'Failed to load forums';
+      this.error = err instanceof ApiError ? err.message : t('home.load_failed');
     } finally {
       this.loading = false;
     }
   }
 
+  override disconnectedCallback(): void {
+    this.unsubscribeLocale?.();
+    super.disconnectedCallback();
+  }
+
   override render() {
     return html`
       <section class="hero">
-        <h1>Forums</h1>
-        <p>Browse the discussion categories.</p>
+        <h1>${t('home.title')}</h1>
+        <p>${t('home.subtitle')}</p>
       </section>
 
       ${this.loading
-        ? html`<p class="loading">Loading forums…</p>`
+        ? html`<ml-loading></ml-loading>`
         : this.error
-          ? html`<div class="error">${this.error}</div>`
+          ? html`<ml-message tone="error" text=${this.error}></ml-message>`
           : this.groups.length === 0
-            ? html`<div class="empty">No forums yet. Ask an administrator to create one.</div>`
+            ? html`<ml-card><p>${t('home.empty')}</p></ml-card>`
             : html`
                 <div class="groups">
                   ${this.groups.map(

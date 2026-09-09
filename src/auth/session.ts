@@ -1,5 +1,6 @@
 import { clearAccessToken, getAccessToken, setAccessToken } from './token.js';
 import { fetchMe, loginUser, logoutUser, registerUser } from '../api/endpoints.js';
+import { realtime } from '../ws/client.js';
 import type { User } from '../api/types.js';
 
 /** In-memory auth state shared across views. */
@@ -32,6 +33,7 @@ export async function refreshSession(): Promise<void> {
     if (currentUser !== null) {
       currentUser = null;
       currentRoles = [];
+      realtime.disconnect();
       notify();
     }
     return;
@@ -40,10 +42,12 @@ export async function refreshSession(): Promise<void> {
     const me = await fetchMe();
     currentUser = me.user;
     currentRoles = me.roles;
+    realtime.connect();
     notify();
   } catch {
     currentUser = null;
     currentRoles = [];
+    realtime.disconnect();
     notify();
   }
 }
@@ -53,6 +57,13 @@ export async function login(identifier: string, password: string): Promise<void>
   setAccessToken(res.access_token);
   currentUser = res.user;
   currentRoles = res.roles;
+  realtime.connect();
+  notify();
+}
+
+/** Replace the in-memory user after a profile edit and notify subscribers. */
+export function updateCurrentUser(user: User): void {
+  currentUser = user;
   notify();
 }
 
@@ -62,6 +73,7 @@ export async function register(username: string, email: string, password: string
 }
 
 export async function logout(): Promise<void> {
+  realtime.disconnect();
   try {
     await logoutUser();
   } catch {

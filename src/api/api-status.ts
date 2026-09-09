@@ -1,6 +1,7 @@
 import { LitElement, html, css } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { fetchHealth, fetchVersion, ApiError } from './client.js';
+import { t } from '../i18n/index.js';
 
 type Status = 'checking' | 'online' | 'offline';
 
@@ -53,7 +54,7 @@ export class ApiStatus extends LitElement {
       const [health, version] = await Promise.all([fetchHealth(), fetchVersion()]);
       if (health.status === 'ok') {
         this.status = 'online';
-        this.label = `API ${version.backend} · db ${version.db}`;
+        this.label = t('status.label', { backend: version.backend, db: version.db });
       } else {
         this.status = 'offline';
       }
@@ -66,7 +67,7 @@ export class ApiStatus extends LitElement {
   override render() {
     return html`
       <span class="dot ${this.status}"></span>
-      <span>${this.status === 'checking' ? 'Checking API…' : this.status === 'online' ? this.label : 'API offline'}</span>
+      <span>${this.status === 'checking' ? t('status.checking') : this.status === 'online' ? this.label : t('status.offline')}</span>
     `;
   }
 }

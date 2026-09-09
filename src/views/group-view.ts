@@ -6,6 +6,14 @@ import { createThread, fetchGroup, fetchGroupThreads, uploadAttachment } from '.
 import { isLoggedIn } from '../auth/session.js';
 import { navigate } from '../router.js';
 import type { Group, ThreadSummary } from '../api/types.js';
+import { subscribeLocale, t } from '../i18n/index.js';
+import '../components/presence-dot.js';
+import '../components/ml-loading.js';
+import '../components/ml-message.js';
+import '../components/ml-badge.js';
+import '../components/ml-card.js';
+import '../components/ml-button.js';
+import '../components/ml-pagination.js';
 
 /** `group-view` renders a forum category with its threads. */
 @customElement('group-view')
@@ -88,10 +96,6 @@ export class GroupView extends LitElement {
 
     .composer {
       margin-top: var(--space-8);
-      padding: var(--space-6);
-      border: 1px solid var(--color-border);
-      border-radius: var(--radius-lg);
-      background: var(--color-surface);
     }
 
     .composer label {
@@ -161,6 +165,9 @@ export class GroupView extends LitElement {
   location?: RouterLocation;
   @state() private group: Group | null = null;
   @state() private threads: ThreadSummary[] = [];
+  @state() private threadsTotal = 0;
+  @state() private threadOffset = 0;
+  @state() private pageSize = 50;
   @state() private loading = true;
   @state() private error = '';
   @state() private threadTitle = '';
@@ -169,23 +176,50 @@ export class GroupView extends LitElement {
   @state() private submitting = false;
   @state() private composerError = '';
 
+  private unsubscribeLocale: (() => void) | null = null;
+
   override firstUpdated(): void {
     this.load();
+    this.unsubscribeLocale = subscribeLocale(() => this.requestUpdate());
+  }
+
+  override disconnectedCallback(): void {
+    this.unsubscribeLocale?.();
+    super.disconnectedCallback();
   }
 
   private async load(): Promise<void> {
     const id = this.location?.params.id as string | undefined;
     if (!id) {
-      this.error = 'Forum not found';
+      this.error = t('group.not_found');
       this.loading = false;
       return;
     }
     try {
-      const [group, threads] = await Promise.all([fetchGroup(id), fetchGroupThreads(id)]);
+      const [group, threads] = await Promise.all([fetchGroup(id), fetchGroupThreads(id, this.pageSize, 0)]);
       this.group = group;
       this.threads = threads.items;
+      this.threadsTotal = threads.total;
+      this.threadOffset = 0;
     } catch (err) {
-      this.error = err instanceof ApiError ? err.message : 'Failed to load forum';
+      this.error = err instanceof ApiError ? err.message : t('group.load_failed');
+    } finally {
+      this.loading = false;
+    }
+  }
+
+  private async onPageChange(e: CustomEvent<number>): Promise<void> {
+    const id = this.location?.params.id as string | undefined;
+    if (!id) return;
+    this.loading = true;
+    this.error = '';
+    try {
+      const threads = await fetchGroupThreads(id, this.pageSize, e.detail);
+      this.threads = threads.items;
+      this.threadsTotal = threads.total;
+      this.threadOffset = e.detail;
+    } catch (err) {
+      this.error = err instanceof ApiError ? err.message : t('group.load_failed');
     } finally {
       this.loading = false;
     }
@@ -195,11 +229,11 @@ export class GroupView extends LitElement {
     const id = this.location?.params.id as string | undefined;
     this.composerError = '';
     if (!this.threadTitle.trim()) {
-      this.composerError = 'Title is required';
+      this.composerError = t('group.title_required');
       return;
     }
     if (!this.body.trim()) {
-      this.composerError = 'Message is required';
+      this.composerError = t('group.message_required');
       return;
     }
     this.submitting = true;
@@ -216,7 +250,7 @@ export class GroupView extends LitElement {
       });
       navigate(`/threads/${created.id}`);
     } catch (err) {
-      this.composerError = err instanceof ApiError ? err.message : 'Failed to create thread';
+      this.composerError = err instanceof ApiError ? err.message : t('group.create_failed');
     } finally {
       this.submitting = false;
     }
@@ -225,9 +259,9 @@ export class GroupView extends LitElement {
   override render() {
     return html`
       ${this.loading
-        ? html`<p>Loading…</p>`
+        ? html`<ml-loading></ml-loading>`
         : this.error
-          ? html`<div class="error">${this.error}</div>`
+          ? html`<ml-message tone="error" text=${this.error}></ml-message>`
           : html`
               <header class="group-header">
                 <h1>${this.group?.name ?? ''}</h1>
@@ -235,45 +269,52 @@ export class GroupView extends LitElement {
               </header>
 
               <div class="toolbar">
-                <h2>Threads</h2>
+                <h2>${t('group.threads')}</h2>
                 ${this.threads.length ? html`<span class="threads-count">${this.threads.length}</span>` : ''}
               </div>
 
               ${this.threads.length === 0
-                ? html`<div class="empty">No threads yet.</div>`
+                ? html`<div class="empty">${t('group.no_threads')}</div>`
                 : html`
                     <div class="threads">
                       ${this.threads.map(
-                        (t) => html`
-                          <a class="thread" href="/threads/${t.id}" router-link>
+                        (th) => html`
+                          <a class="thread" href="/threads/${th.id}" router-link>
                             <span class="thread-title">
-                              ${t.pinned ? html`<span class="badge">pinned</span>` : ''}
-                              ${t.locked ? html`<span class="badge">locked</span>` : ''}
-                              ${t.title}
+                              ${th.pinned ? html`<ml-badge>${t('group.pinned')}</ml-badge>` : ''}
+                              ${th.locked ? html`<ml-badge tone="primary">${t('group.locked')}</ml-badge>` : ''}
+                              ${th.title}
                             </span>
                             <span class="thread-meta">
-                              ${t.post_count} posts · ${t.author_display_name}
+                              ${t('group.post_count', { count: th.post_count })} · ${th.author_display_name}
+                              <presence-dot user-id=${th.author_id}></presence-dot>
                             </span>
                           </a>
                         `,
                       )}
                     </div>
+                    <ml-pagination
+                      total=${this.threadsTotal}
+                      pageSize=${this.pageSize}
+                      offset=${this.threadOffset}
+                      @page-change=${(e: CustomEvent<number>) => void this.onPageChange(e)}
+                    ></ml-pagination>
                   `}
 
               ${isLoggedIn()
                 ? html`
-                    <section class="composer">
-                      <h2>New thread</h2>
+                    <ml-card class="composer">
+                      <h2>${t('group.new_thread')}</h2>
                       <form @submit=${(e: Event) => {
                         e.preventDefault();
                         this.submitThread();
                       }}>
-                        <label for="thread-title">Title</label>
+                        <label for="thread-title">${t('group.title')}</label>
                         <input id="thread-title" .value=${this.threadTitle} @input=${(e: Event) => (this.threadTitle = (e.target as HTMLInputElement).value)} maxlength="200" />
-                        <label for="thread-body">Message</label>
+                        <label for="thread-body">${t('group.message')}</label>
                         <textarea id="thread-body" rows="6" .value=${this.body} @input=${(e: Event) => (this.body = (e.target as HTMLTextAreaElement).value)} maxlength="50000"></textarea>
                         <label class="file-label" for="thread-files">
-                          <span>Attach files:</span>
+                          <span>${t('group.attach')}</span>
                           <input
                             id="thread-files"
                             type="file"
@@ -287,15 +328,15 @@ export class GroupView extends LitElement {
                         </label>
                         ${this.selectedFiles.length > 0 ? html`<p class="meta">${this.selectedFiles.map((f) => f.name).join(', ')}</p>` : ''}
                         <div class="actions">
-                          <button type="submit" ?disabled=${this.submitting}>
-                            ${this.submitting ? 'Posting…' : 'Post thread'}
-                          </button>
+                          <ml-button type="submit" ?disabled=${this.submitting}>
+                            ${this.submitting ? t('group.posting') : t('group.post_thread')}
+                          </ml-button>
                         </div>
                       </form>
-                      ${this.composerError ? html`<div class="error">${this.composerError}</div>` : ''}
-                    </section>
+                      ${this.composerError ? html`<ml-message tone="error" text=${this.composerError}></ml-message>` : ''}
+                    </ml-card>
                   `
-                : html`<p><a href="/login" router-link>Log in</a> to start a thread.</p>`}
+                : html`<p><a href="/login" router-link>${t('nav.login')}</a> ${t('group.login_to_start')}</p>`}
             `}
     `;
   }
