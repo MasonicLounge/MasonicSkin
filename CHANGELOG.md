@@ -8,6 +8,9 @@ Entries are bilingual (English / Russian).
 
 ### Added / Добавлено
 
+- Container image: `Dockerfile` (Node 24 build stage → nginx runtime) with `nginx.conf` serving the SPA and proxying `/api`, `/media` and the `/ws` WebSocket upgrade to the backend.
+- Образ контейнера: `Dockerfile` (сборка Node 24 → рантайм nginx) с `nginx.conf`, раздающим SPA и проксирующим `/api`, `/media` и WebSocket-upgrade `/ws` на бэкенд.
+
 - Admin panel at `/admin` for administrators only: tabs for group management
   (create/delete), user administration (role checkboxes and status select),
   forum settings (name editing), media (attachment list and deletion) and
