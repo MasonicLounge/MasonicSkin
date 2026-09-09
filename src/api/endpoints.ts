@@ -37,12 +37,26 @@ export function createGroup(input: { name: string; slug: string; description?: s
   return api.post<Group>('/groups', input, true);
 }
 
-export function createThread(groupID: string, input: { title: string; body: string }): Promise<ThreadSummary> {
+export function createThread(groupID: string, input: { title: string; body: string; attachment_ids?: string[] }): Promise<ThreadSummary> {
   return api.post<ThreadSummary>(`/groups/${groupID}/threads`, input, true);
 }
 
-export function createPost(threadID: string, input: { body: string }): Promise<PostSummary> {
+export function createPost(threadID: string, input: { body: string; attachment_ids?: string[] }): Promise<PostSummary> {
   return api.post<PostSummary>(`/threads/${threadID}/posts`, input, true);
+}
+
+/** Upload a file as an attachment (multipart). Returns the created attachment. */
+export function uploadAttachment(file: File, postID?: string): Promise<AttachmentWithOwner> {
+  const form = new FormData();
+  form.append('file', file);
+  if (postID) {
+    form.append('post_id', postID);
+  }
+  return api.postForm<AttachmentWithOwner>('/media/attachments', form);
+}
+
+export function fetchPublicSettings(): Promise<{ forum_name: string | null }> {
+  return api.get<{ forum_name: string | null }>('/settings');
 }
 
 export function registerUser(input: { username: string; email: string; password: string }): Promise<{ user: User }> {
