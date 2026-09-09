@@ -1,6 +1,6 @@
 # MasonicSkin
 
-[![CI](https://img.shields.io/github/actions/workflow/status/masoniclounge/MasonicSkin/ci.yml?branch=MVP&label=CI)](https://github.com/masoniclounge/MasonicSkin/actions)
+[![CI](https://img.shields.io/github/actions/workflow/status/masoniclounge/MasonicSkin/ci.yml?branch=dev&label=CI)](https://github.com/masoniclounge/MasonicSkin/actions)
 [![Commit activity](https://img.shields.io/github/commit-activity/m/masoniclounge/MasonicSkin)](https://github.com/masoniclounge/MasonicSkin/commits)
 [![Contributors](https://img.shields.io/github/contributors/masoniclounge/MasonicSkin)](https://github.com/masoniclounge/MasonicSkin/graphs/contributors)
 [![Last commit](https://img.shields.io/github/last-commit/masoniclounge/MasonicSkin)](https://github.com/masoniclounge/MasonicSkin/commits)

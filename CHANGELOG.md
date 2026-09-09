@@ -22,6 +22,11 @@ Entries are bilingual (English / Russian).
 - Router was never initialized because the `#outlet` lookup ran in module scope while the outlet lives inside the `app-shell` shadow DOM — views (install wizard, home, etc.) rendered as an empty page. The router is now bound to the shadow outlet from `app-shell` via a new `initRouter()` helper.
 - Роутер не инициализировался: поиск `#outlet` выполнялся на этапе загрузки модуля, а выход находился в shadow DOM `app-shell` — представления (мастер установки, главная и др.) не рендерились, оставаясь пустой страницей. Роутер теперь привязывается к shadow-outlet из `app-shell` через новый хелпер `initRouter()`.
 
+### Changed / Изменено
+
+- README CI badge now points at the `dev` integration branch instead of `MVP`.
+- В README бейдж CI теперь указывает на интеграционную ветку `dev` вместо `MVP`.
+
 ## [0.1.0] - 2026-09-09
 
 ### Added / Добавлено
